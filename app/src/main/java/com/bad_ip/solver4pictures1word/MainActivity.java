@@ -1,6 +1,8 @@
 package com.bad_ip.solver4pictures1word;
 
+import android.app.ProgressDialog;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -22,6 +24,74 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 
 public class MainActivity extends AppCompatActivity {
+    private class LoadDataTask extends AsyncTask<Void, Void, Void> {
+
+        //initiate vars
+        public LoadDataTask() {
+            super();
+            //my params here
+        }
+
+        private ProgressDialog pdia;
+
+        @Override
+        protected void onPreExecute(){
+            super.onPreExecute();
+            pdia = new ProgressDialog(MainActivity.this);
+            pdia.setMessage("Loading words from dictionary...");
+            pdia.setCancelable(false);
+            pdia.show();
+        }
+
+        protected Void doInBackground(Void... params) {
+            //do stuff
+            loadWordData();
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            //do stuff
+            pdia.dismiss();
+        }
+    }
+    private class WordSearch extends AsyncTask<Void, Void, Void> {
+        String randomChars;
+        int length;
+        ArrayList<String> results;
+        //initiate vars
+        public WordSearch(String randomChars, int length) {
+            super();
+            this.randomChars = randomChars;
+            this.length = length;
+
+            //my params here
+        }
+
+        private ProgressDialog pdia;
+
+        @Override
+        protected void onPreExecute(){
+            super.onPreExecute();
+            pdia = new ProgressDialog(MainActivity.this);
+            pdia.setMessage("Loading Results...");
+            pdia.setCancelable(false);
+            pdia.show();
+        }
+
+        protected Void doInBackground(Void... params) {
+            //do stuff
+            this.results = get_words(randomChars, length);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void result) {
+            //do stuff
+            pdia.dismiss();
+            showResultsActivity(results);
+        }
+    }
     public static final String FOUNDWORDSEXTRA = "com.bad_ip.solver4pictures1word.FOUNDWORDSEXTRA";
     private ArrayList<String> wordList;
 
@@ -31,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+        new LoadDataTask().execute();
 //
 //        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
 //        fab.setOnClickListener(new View.OnClickListener() {
@@ -41,6 +112,12 @@ public class MainActivity extends AppCompatActivity {
 //            }
 //        });
 
+
+        //finished loading
+
+    }
+    private void loadWordData() {
+        //Loads the word data into an ArrayList
         InputStream inputStream = null;
         String result = null;
         this.wordList = new ArrayList<String>();
@@ -86,25 +163,46 @@ public class MainActivity extends AppCompatActivity {
                 Log.e("test", e.toString());
             }
         }
-
     }
-    public void getResults(View view) {
+
+    public void go(View view) {
         // Go button pressed
         // TODO crash on empty length (int parsing)
         // TODO don't allow empty randomchars
-        Intent intent = new Intent(this, ResultsActivity.class);
+
         EditText randomCharsEditText = (EditText) findViewById(R.id.randomChars);
         EditText wordLengthEditText = (EditText) findViewById(R.id.wordLength);
-        String randomChars = randomCharsEditText.getText().toString();
+        String randomChars = randomCharsEditText.getText().toString().toLowerCase();
         String wordLengthString = wordLengthEditText.getText().toString();
         int wordLength = 0;
+        if(randomChars.length() == 0) {
+            Snackbar.make(view, "You can't create a word from nothing", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+            return;
+        }
         if(wordLengthString.length() > 0) {
             wordLength = Integer.parseInt(wordLengthString);
         }
-        ArrayList<String> results = this.get_words(randomChars, wordLength);
+        else {
+            Snackbar.make(view, "Please set a length", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+            return;
+        }
+        if(wordLength > randomChars.length()) {
+            Snackbar.make(view, "Creating a word from your input is impossible", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+            return;
+        }
+
+        new WordSearch(randomChars, wordLength).execute();
+        //ArrayList<String> results = this.get_words(randomChars, wordLength);
+
+
+    }
+    public void showResultsActivity(ArrayList<String> results) {
+        Intent intent = new Intent(this, ResultsActivity.class);
         intent.putExtra(FOUNDWORDSEXTRA, results);
         startActivity(intent);
-
     }
 
     public ArrayList<String> get_words(String randomCharsString, int length) {
@@ -117,8 +215,8 @@ public class MainActivity extends AppCompatActivity {
         //looping over every word in dictionary
         for(int i = 0; i < wordList.size(); i++) {
             String word = wordList.get(i);
-            System.out.println("Processing word");
-            System.out.println(word);
+//            System.out.println("Processing word");
+//            System.out.println(word);
             if(test_word(word, randomChars)) {
                 //only add word if length matches
                 if(word.length() == length) {
@@ -136,10 +234,10 @@ public class MainActivity extends AppCompatActivity {
         for(int j = 0; j<word.length(); j++) {
             char wordChar = word.charAt(j);
             if(randomChars.contains(wordChar)) {
-                System.out.println("contains");
-                System.out.println(wordChar);
+//                System.out.println("contains");
+//                System.out.println(wordChar);
                 randomChars.remove((Character) wordChar);
-                System.out.println(randomChars);
+//                System.out.println(randomChars);
             }
             else {
                 //the word from the dictionary contains a char that is not available from the random chars
@@ -150,7 +248,7 @@ public class MainActivity extends AppCompatActivity {
             //System.out.println(wordChar);
         }
         //There were enough random chars to build the word
-        System.out.println("found word " + word);
+//        System.out.println("found word " + word);
         return true;
     }
     @Override

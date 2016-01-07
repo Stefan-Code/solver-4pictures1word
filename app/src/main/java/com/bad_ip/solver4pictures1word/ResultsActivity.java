@@ -22,7 +22,10 @@ public class ResultsActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         Intent intent = getIntent();
         ArrayList<String> foundWords = intent.getStringArrayListExtra(MainActivity.FOUNDWORDSEXTRA);
+        String numItems = String.valueOf(foundWords.size());
+        setTitle(getString(R.string.title_activity_results) + " : " + numItems);
         ListView listView = (ListView) findViewById(R.id.listView);
+
         ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(
                 this,
                 android.R.layout.simple_list_item_1,
